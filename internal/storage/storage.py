@@ -58,7 +58,6 @@ class Storage:
         data_student = await self._db.fetch_one(query)
 
         data_teachers = list()
-        print()
         for ids_discipline_teacher in data_student["ids_discipline_teacher"]:
             data_discipline_teacher = await self.get_discipline_teacher_by_id(ids_discipline_teacher)
             data_teacher = await self.get_teacher_by_id(data_discipline_teacher["id_teacher"])

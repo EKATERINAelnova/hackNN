@@ -52,8 +52,8 @@ class GetStatisticRequest(BaseModel):
 
 # Response /get_statistic
 class GetStatisticResponse(BaseModel):
-    rating_teacher: int
-    rating_discipline: str
+    rating_teacher: dict
+    rating_discipline: dict
 
 
 # Response status

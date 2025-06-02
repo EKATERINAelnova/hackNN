@@ -22,8 +22,6 @@ db = Storage()
 
 @router.get("/get_all_student", response_model=GetAllStudentResponse)
 async def get_all_students():
-    db.drop_table()
-    db.init_table()
     await db.mock_data()
 
     await db.connect()
@@ -98,4 +96,4 @@ async def add_discipline_rating(data: GetStatisticRequest):
         data_discipline_rating.append(row["rating"])
     await db.disconnect()
 
-    return StatusResponse(status=True)
+    return GetStatisticResponse(rating_teacher=rating(data_teacher_rating), rating_discipline=rating(data_discipline_rating))
