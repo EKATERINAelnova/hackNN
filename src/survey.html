@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Система оценки преподавателей</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 10px 0;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .question-container {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+        }
+        textarea {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            min-height: 100px;
+        }
+        .summary {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e9f7ef;
+            border-radius: 5px;
+        }
+        .answers-list {
+            margin-top: 20px;
+        }
+        .answer-item {
+            margin-bottom: 15px;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+        }
+        .loading {
+            text-align: center;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        function App() {
+            const [surveyState, setSurveyState] = useState('not_started'); // 'not_started', 'in_progress', 'completed'
+            const [currentQuestion, setCurrentQuestion] = useState('');
+            const [answer, setAnswer] = useState('');
+            const [questionNumber, setQuestionNumber] = useState(0);
+            const [negativeCount, setNegativeCount] = useState(0);
+            const [summary, setSummary] = useState(null);
+            const [isLoading, setIsLoading] = useState(false);
+            const [answersHistory, setAnswersHistory] = useState([]);
+
+            const startSurvey = async () => {
+                setIsLoading(true);
+                try {
+                    const response = await fetch('http://localhost:5000/api/start_survey', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                    });
+                    const data = await response.json();
+                    setCurrentQuestion(data.question);
+                    setQuestionNumber(data.question_number);
+                    setSurveyState('in_progress');
+                } catch (error) {
+                    console.error('Error starting survey:', error);
+                    alert('Ошибка при запуске опроса');
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+
+            const submitAnswer = async () => {
+                if (!answer.trim()) return;
+                
+                setIsLoading(true);
+                try {
+                    const response = await fetch('http://localhost:5000/api/submit_answer', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ answer }),
+                    });
+                    const data = await response.json();
+                    
+                    // Обновляем историю ответов
+                    const newHistory = [...answersHistory, { question: currentQuestion, answer }];
+                    setAnswersHistory(newHistory);
+                    
+                    if (data.status === 'survey_completed') {
+                        setSummary(data.summary);
+                        setSurveyState('completed');
+                    } else {
+                        setCurrentQuestion(data.question);
+                        setQuestionNumber(data.question_number);
+                        setNegativeCount(data.negative_count);
+                        setAnswer('');
+                    }
+                } catch (error) {
+                    console.error('Error submitting answer:', error);
+                    alert('Ошибка при отправке ответа');
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+
+            const handleKeyPress = (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    submitAnswer();
+                }
+            };
+
+            return (
+                <div className="container">
+                    <h1>Система оценки качества преподавания</h1>
+                    
+                    {surveyState === 'not_started' && (
+                        <div style={{ textAlign: 'center' }}>
+                            <button 
+                                className="button"
+                                onClick={startSurvey} 
+                                disabled={isLoading}
+                            >
+                                {isLoading ? 'Загрузка...' : 'Начать опрос'}
+                            </button>
+                        </div>
+                    )}
+
+                    {surveyState === 'in_progress' && (
+                        <div>
+                            <div className="question-container">
+                                <h3>Вопрос {questionNumber}:</h3>
+                                <p>{currentQuestion}</p>
+                            </div>
+                            
+                            <div>
+                                <textarea
+                                    value={answer}
+                                    onChange={(e) => setAnswer(e.target.value)}
+                                    placeholder="Введите ваш ответ здесь..."
+                                    onKeyPress={handleKeyPress}
+                                />
+                                <button 
+                                    className="button"
+                                    onClick={submitAnswer} 
+                                    disabled={isLoading || !answer.trim()}
+                                >
+                                    {isLoading ? 'Отправка...' : 'Отправить ответ'}
+                                </button>
+                                <p>Негативных ответов: {negativeCount}/3</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {surveyState === 'completed' && summary && (
+                        <div>
+                            <h2>Результаты опроса</h2>
+                            
+                            <div className="summary">
+                                <h3>Ключевые моменты:</h3>
+                                <p>{summary.summary}</p>
+                                
+                                <h3>Рентабельность отзывов:</h3>
+                                <p>{summary.is_rentable ? '✅ Отзывы содержат полезную информацию' : '❌ Отзывы не содержат полезной информации'}</p>
+                            </div>
+                            
+                            <div className="answers-list">
+                                <h3>История ответов:</h3>
+                                {answersHistory.map((item, index) => (
+                                    <div key={index} className="answer-item">
+                                        <p><strong>Вопрос {index + 1}:</strong> {item.question}</p>
+                                        <p><strong>Ответ:</strong> {item.answer}</p>
+                                    </div>
+                                ))}
+                            </div>
+                            
+                            <button 
+                                className="button"
+                                onClick={() => {
+                                    setSurveyState('not_started');
+                                    setAnswersHistory([]);
+                                }}
+                            >
+                                Начать новый опрос
+                            </button>
+                        </div>
+                    )}
+
+                    {isLoading && (
+                        <div className="loading">
+                            <p>Загрузка...</p>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
