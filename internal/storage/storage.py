@@ -199,24 +199,17 @@ class Storage:
         student_id_3 = await self.add_student(name="Согатин Николай Анатольевич", data=[dt_id_1, dt_id_6, dt_id_10, dt_id_16, dt_id_14, dt_id_11])
         student_id_4 = await self.add_student(name="Самсон Иван Евгеньевич", data=[dt_id_9, dt_id_2, dt_id_3, dt_id_12, dt_id_5, dt_id_6, dt_id_15, dt_id_14, dt_id_18, dt_id_19])
 
-        print(await self.get_all_teacher_by_id_student(student_id_1))
-        print(await self.get_all_discipline_by_id_student(student_id_1))
+
         rating_student_t_0 = await self.add_rating(datetime.now() + timedelta(days=0), student_id_1, [4, 2, 1], type_="teacher")
         rating_student_t_1 = await self.add_rating(datetime.now() + timedelta(days=1), student_id_1, [2, 1, 4], type_="teacher")
         rating_student_d_0 = await self.add_rating(datetime.now() + timedelta(days=1), student_id_1, [1, 2, 4, 3, 5, 6], type_="discipline")
-        print()
-        print(await self.get_all_teacher_by_id_student(student_id_2))
-        print(await self.get_all_discipline_by_id_student(student_id_2))
+
         rating_student_t_2 = await self.add_rating(datetime.now() + timedelta(days=-1), student_id_2, [2, 6, 4], type_="teacher")
         rating_student_d_1 = await self.add_rating(datetime.now() + timedelta(days=1), student_id_2, [3, 1, 6, 3, 5], type_="discipline")
-        print()
-        print(await self.get_all_teacher_by_id_student(student_id_3))
-        print(await self.get_all_discipline_by_id_student(student_id_3))
+
         rating_student_t_3 = await self.add_rating(datetime.now() + timedelta(days=0), student_id_3, [3, 1, 4, 2, 5], type_="teacher")
         rating_student_d_2 = await self.add_rating(datetime.now() + timedelta(days=0), student_id_3, [6, 3, 2, 1, 5], type_="discipline")
-        print()
-        print(await self.get_all_teacher_by_id_student(student_id_4))
-        print(await self.get_all_discipline_by_id_student(student_id_4))
+
         rating_student_4 = await self.add_rating(datetime.now() + timedelta(days=2), student_id_4, [1, 5, 2, 5, 4], type_="teacher")
         rating_student_d_3 = await self.add_rating(datetime.now() + timedelta(days=0), student_id_4, [1, 3, 2, 6, 5], type_="discipline")
         await self.disconnect()

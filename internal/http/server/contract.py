@@ -52,10 +52,8 @@ class GetStatisticRequest(BaseModel):
 
 # Response /get_statistic
 class GetStatisticResponse(BaseModel):
-    id_student: int
-    name: str
-    summary: str
-    keywords: list[str]
+    rating_teacher: int
+    rating_discipline: str
 
 
 # Response status

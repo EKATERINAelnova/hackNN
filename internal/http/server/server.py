@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 from fastapi import APIRouter
 
 from internal.http.server.contract import (
@@ -61,13 +63,39 @@ async def add_discipline_rating(data: AddDisciplineRatingRequest):
     await db.connect()
     await db.add_rating(date=datetime.now(), id_student=data.id_student, rating_list=data.rating, type_="discipline")
     await db.disconnect()
-    return StatusResponse(status=True)
+    return StatusResponse(status=True)s
 
-
-@router.post("/get_statistic", response_model=StatusResponse) # GetStatisticResponse
+@router.post("/get_statistic", response_model=GetStatisticResponse) # GetStatisticResponse
 async def add_discipline_rating(data: GetStatisticRequest):
+    def rating(data: list[list[int]]) -> dict:
+        # Храним суммы рейтингов и количество появлений
+        _scores = defaultdict(float)
+        _counts = defaultdict(int)
+
+        for arr in data:
+            n = len(arr)
+            for position, _id in enumerate(arr):
+                rating = 1 - position / n
+                _scores[_id] += rating
+                _counts[_id] += 1
+
+        # Считаем средний рейтинг
+        average_ratings = {
+            _id: _scores[_id] / _counts[_id]
+            for _id in _scores
+        }
+        return average_ratings
+
     await db.connect()
-    test = await db.get_last_rating_on_diapason(start_date=datetime.now() + timedelta(days=-2), end_date=datetime.now() + timedelta(days=3), _type="teacher")
+    data_teacher_rating = list()
+    teacher = await db.get_last_rating_on_diapason(start_date=data.date_start, end_date=data.date_end, _type="teacher")
+    for row in teacher:
+        data_teacher_rating.append(row["rating"])
+
+    data_discipline_rating = list()
+    discipline = await db.get_last_rating_on_diapason(start_date=data.date_start, end_date=data.date_end, _type="discipline")
+    for row in discipline:
+        data_discipline_rating.append(row["rating"])
     await db.disconnect()
-    print(test)
+
     return StatusResponse(status=True)
