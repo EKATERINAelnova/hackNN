@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel
 
 
@@ -42,9 +44,14 @@ class AddDisciplineRatingRequest(BaseModel):
     id_student: int
     rating: list[int]
 
+# Request /get_statistic
+class GetStatisticRequest(BaseModel):
+    date_start: datetime
+    date_end: datetime
 
-# Response /get_feedback
-class GetFeedbackResponse(BaseModel):
+
+# Response /get_statistic
+class GetStatisticResponse(BaseModel):
     id_student: int
     name: str
     summary: str

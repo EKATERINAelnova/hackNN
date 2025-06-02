@@ -1,4 +1,7 @@
+from datetime import datetime, timedelta
+
 from databases import Database
+from sqlalchemy import select, func, and_
 from sqlalchemy import create_engine
 from internal.storage.metadata import metadata, student, teacher, feedback, rating, discipline_teacher, discipline
 from typing import Optional
@@ -84,8 +87,6 @@ class Storage:
                 'description': data_discipline["description"]
             })
 
-        print()
-
         # Используем словарь для уникальных записей
         union_data_disciplines = {item['id_discipline']: item for item in data_disciplines}.values()
         # Преобразуем обратно в список
@@ -97,7 +98,128 @@ class Storage:
         return await self._db.execute(query)
 
 
+    async def get_last_rating_on_diapason(self, start_date: datetime, end_date: datetime, _type: str):
+        subq = select(
+            rating.c.id_rating,
+            rating.c.date,
+            rating.c.id_student,
+            rating.c.rating,
+            rating.c.type,
+            func.row_number().over(
+                partition_by=rating.c.id_student,
+                order_by=rating.c.date.desc()
+            ).label("rn")
+        ).where(
+            and_(
+                rating.c.date.between(start_date, end_date),
+                rating.c.type.in_([_type])
+            )
+        ).subquery()
 
+        # основной запрос: берем только строки с rn = 1 (т.е. последние по дате для каждого id_student)
+        query = select(
+            subq.c.id_rating,
+            subq.c.date,
+            subq.c.id_student,
+            subq.c.rating,
+            subq.c.type
+        ).where(subq.c.rn == 1)
+        result = await self._db.fetch_all(query)
+        return result
+
+    # Добавление
+    async def add_student(self, name: str, data: list[int]):
+        query = student.insert().values(name=name, ids_discipline_teacher=data)
+        return await self._db.execute(query)
+
+    async def add_teacher(self, name: str):
+        query = teacher.insert().values(name=name)
+        return await self._db.execute(query)
+
+    async def add_discipline(self, name: str, description: str):
+        query = discipline.insert().values(name=name, description=description)
+        return await self._db.execute(query)
+
+    async def add_discipline_teacher(self, id_teacher: str, id_discipline: str):
+        query = discipline_teacher.insert().values(id_teacher=id_teacher, id_discipline=id_discipline)
+        return await self._db.execute(query)
+
+    # 👇 Метод добавления моковых данных
+    async def mock_data(self):
+        await self.connect()
+
+        # Преподаватели
+        teacher_id_1 = await self.add_teacher("Тальяна Ковалёва")
+        teacher_id_2 = await self.add_teacher("Сергей Матвеев")
+        teacher_id_3 = await self.add_teacher("Лилия Бражник")
+        teacher_id_4 = await self.add_teacher("Самарина Татьяна")
+        teacher_id_5 = await self.add_teacher("Родин Самсон")
+        teacher_id_6 = await self.add_teacher("Согатин Николай")
+
+
+        # Дисциплины
+        discipline_id_1 = await self.add_discipline(name="Веб-программирование", description="")
+        discipline_id_2 = await self.add_discipline(name="ООП", description="")
+        discipline_id_3 = await self.add_discipline(name="Базы данных", description="")
+        discipline_id_4 = await self.add_discipline(name="Криптография", description="")
+        discipline_id_5 = await self.add_discipline(name="Алгоритмы", description="")
+        discipline_id_6 = await self.add_discipline(name="Теория вероятностей", description="")
+
+        # Связь преподаватель-дисциплина
+        dt_id_1 = await self.add_discipline_teacher(id_teacher=teacher_id_1, id_discipline=discipline_id_1)
+        dt_id_2 = await self.add_discipline_teacher(id_teacher=teacher_id_1, id_discipline=discipline_id_2)
+        dt_id_3 = await self.add_discipline_teacher(id_teacher=teacher_id_1, id_discipline=discipline_id_3)
+        dt_id_4 = await self.add_discipline_teacher(id_teacher=teacher_id_1, id_discipline=discipline_id_4)
+
+        dt_id_5 = await self.add_discipline_teacher(id_teacher=teacher_id_2, id_discipline=discipline_id_1)
+        dt_id_6 = await self.add_discipline_teacher(id_teacher=teacher_id_2, id_discipline=discipline_id_2)
+        dt_id_7 = await self.add_discipline_teacher(id_teacher=teacher_id_2, id_discipline=discipline_id_5)
+        dt_id_8 = await self.add_discipline_teacher(id_teacher=teacher_id_2, id_discipline=discipline_id_6)
+
+        dt_id_9 = await self.add_discipline_teacher(id_teacher=teacher_id_3, id_discipline=discipline_id_2)
+        dt_id_10 = await self.add_discipline_teacher(id_teacher=teacher_id_3, id_discipline=discipline_id_3)
+        dt_id_11 = await self.add_discipline_teacher(id_teacher=teacher_id_3, id_discipline=discipline_id_5)
+        dt_id_12 = await self.add_discipline_teacher(id_teacher=teacher_id_3, id_discipline=discipline_id_6)
+
+        dt_id_13 = await self.add_discipline_teacher(id_teacher=teacher_id_4, id_discipline=discipline_id_3)
+        dt_id_14 = await self.add_discipline_teacher(id_teacher=teacher_id_4, id_discipline=discipline_id_5)
+
+        dt_id_15 = await self.add_discipline_teacher(id_teacher=teacher_id_5, id_discipline=discipline_id_1)
+        dt_id_16 = await self.add_discipline_teacher(id_teacher=teacher_id_5, id_discipline=discipline_id_6)
+
+        dt_id_17 = await self.add_discipline_teacher(id_teacher=teacher_id_6, id_discipline=discipline_id_1)
+        dt_id_18 = await self.add_discipline_teacher(id_teacher=teacher_id_6, id_discipline=discipline_id_2)
+        dt_id_19 = await self.add_discipline_teacher(id_teacher=teacher_id_6, id_discipline=discipline_id_3)
+        dt_id_20 = await self.add_discipline_teacher(id_teacher=teacher_id_6, id_discipline=discipline_id_6)
+
+        # Студенты
+        student_id_1 = await self.add_student(name="Алексей Смирнов Иванович",data=[1,2,3])
+        student_id_1 = await self.add_student(name="Алексей Смирнов Иванович", data=[dt_id_1, dt_id_2, dt_id_3, dt_id_4, dt_id_5, dt_id_6, dt_id_7, dt_id_8, dt_id_13, dt_id_14])
+        student_id_2 = await self.add_student(name="Кузнецова Елена Александровна", data=[dt_id_17, dt_id_18, dt_id_19, dt_id_20, dt_id_5, dt_id_6, dt_id_7, dt_id_8, dt_id_13, dt_id_14])
+        student_id_3 = await self.add_student(name="Согатин Николай Анатольевич", data=[dt_id_1, dt_id_6, dt_id_10, dt_id_16, dt_id_14, dt_id_11])
+        student_id_4 = await self.add_student(name="Самсон Иван Евгеньевич", data=[dt_id_9, dt_id_2, dt_id_3, dt_id_12, dt_id_5, dt_id_6, dt_id_15, dt_id_14, dt_id_18, dt_id_19])
+
+        print(await self.get_all_teacher_by_id_student(student_id_1))
+        print(await self.get_all_discipline_by_id_student(student_id_1))
+        rating_student_t_0 = await self.add_rating(datetime.now() + timedelta(days=0), student_id_1, [4, 2, 1], type_="teacher")
+        rating_student_t_1 = await self.add_rating(datetime.now() + timedelta(days=1), student_id_1, [2, 1, 4], type_="teacher")
+        rating_student_d_0 = await self.add_rating(datetime.now() + timedelta(days=1), student_id_1, [1, 2, 4, 3, 5, 6], type_="discipline")
+        print()
+        print(await self.get_all_teacher_by_id_student(student_id_2))
+        print(await self.get_all_discipline_by_id_student(student_id_2))
+        rating_student_t_2 = await self.add_rating(datetime.now() + timedelta(days=-1), student_id_2, [2, 6, 4], type_="teacher")
+        rating_student_d_1 = await self.add_rating(datetime.now() + timedelta(days=1), student_id_2, [3, 1, 6, 3, 5], type_="discipline")
+        print()
+        print(await self.get_all_teacher_by_id_student(student_id_3))
+        print(await self.get_all_discipline_by_id_student(student_id_3))
+        rating_student_t_3 = await self.add_rating(datetime.now() + timedelta(days=0), student_id_3, [3, 1, 4, 2, 5], type_="teacher")
+        rating_student_d_2 = await self.add_rating(datetime.now() + timedelta(days=0), student_id_3, [6, 3, 2, 1, 5], type_="discipline")
+        print()
+        print(await self.get_all_teacher_by_id_student(student_id_4))
+        print(await self.get_all_discipline_by_id_student(student_id_4))
+        rating_student_4 = await self.add_rating(datetime.now() + timedelta(days=2), student_id_4, [1, 5, 2, 5, 4], type_="teacher")
+        rating_student_d_3 = await self.add_rating(datetime.now() + timedelta(days=0), student_id_4, [1, 3, 2, 6, 5], type_="discipline")
+        await self.disconnect()
 
 
 
@@ -106,9 +228,6 @@ class Storage:
 
 
     # Примеры CRUD-методов student
-    async def add_student(self, name: str, subject_teacher_ids: list[int]):
-        query = student.insert().values(name=name, data_subject_teacher=subject_teacher_ids)
-        return await self._db.execute(query)
 
     async def get_all_students(self):
         query = student.select()
