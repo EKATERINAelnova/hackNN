@@ -1,10 +1,7 @@
-# hackNN
+# HackNN
 
-оценка преподавателей
-## СТУДЕНТ
+## Start server
+```PYTHONPATH=. fastapi dev internal/app/app.py```
 
-делает отзыв, выставляя преподов и предметы в свой рейтинг
-
-## АДМИН
-
-график после обработки нейронкой
+## Install requirements
+```pip install -r /path/to/requirements.txt```
