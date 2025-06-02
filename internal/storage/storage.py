@@ -1,6 +1,6 @@
 from databases import Database
 from sqlalchemy import create_engine
-from internal.http.storage.metadata import metadata, student, teacher, feedback, rating, discipline_teacher, discipline
+from internal.storage.metadata import metadata, student, teacher, feedback, rating, discipline_teacher, discipline
 from typing import Optional
 
 # Класс-обёртка (Singleton)
@@ -28,6 +28,81 @@ class Storage:
     def init_table(self):
         engine = create_engine(self._db_path)
         metadata.create_all(engine)
+
+    def drop_table(self):
+        engine = create_engine(self._db_path)
+        metadata.drop_all(engine)
+
+
+    async def get_all_students(self):
+        query = student.select()
+        return await self._db.fetch_all(query)
+
+    async def get_teacher_by_id(self, id_teacher: int):
+        query = teacher.select().where(teacher.c.id_teacher == id_teacher)
+        return await self._db.fetch_one(query)
+
+    async def get_discipline_by_id(self, id_discipline: int):
+        query = discipline.select().where(discipline.c.id_discipline == id_discipline)
+        return await self._db.fetch_one(query)
+
+    async def get_discipline_teacher_by_id(self, id_discipline_teacher: int):
+        query = discipline_teacher.select().where(discipline_teacher.c.id_discipline_teacher == id_discipline_teacher)
+        return await self._db.fetch_one(query)
+
+    async def get_all_teacher_by_id_student(self, id_student: int):
+        query = student.select().where(student.c.id_student == id_student)
+        data_student = await self._db.fetch_one(query)
+
+        data_teachers = list()
+        print()
+        for ids_discipline_teacher in data_student["ids_discipline_teacher"]:
+            data_discipline_teacher = await self.get_discipline_teacher_by_id(ids_discipline_teacher)
+            data_teacher = await self.get_teacher_by_id(data_discipline_teacher["id_teacher"])
+            data_teachers.append({
+                'id_teacher': data_teacher["id_teacher"],
+                'name': data_teacher["name"]
+            })
+
+        # Используем словарь для уникальных записей
+        union_data_teachers = {item['id_teacher']: item for item in data_teachers}.values()
+        # Преобразуем обратно в список
+        union_data_teachers = list(union_data_teachers)
+        return {'teachers': union_data_teachers}
+
+    async def get_all_discipline_by_id_student(self, id_student: int):
+        query = student.select().where(student.c.id_student == id_student)
+        data_student = await self._db.fetch_one(query)
+
+        data_disciplines = list()
+        for ids_discipline_teacher in data_student["ids_discipline_teacher"]:
+            data_discipline_teacher = await self.get_discipline_teacher_by_id(ids_discipline_teacher)
+            data_discipline = await self.get_discipline_by_id(data_discipline_teacher["id_discipline"])
+            data_disciplines.append({
+                'id_discipline': data_discipline["id_discipline"],
+                'name': data_discipline["name"],
+                'description': data_discipline["description"]
+            })
+
+        print()
+
+        # Используем словарь для уникальных записей
+        union_data_disciplines = {item['id_discipline']: item for item in data_disciplines}.values()
+        # Преобразуем обратно в список
+        union_data_disciplines = list(union_data_disciplines)
+        return {'disciplines': union_data_disciplines}
+
+    async def add_rating(self, date, id_student: int, rating_list: list[int], type_: str):
+        query = rating.insert().values(date=date, id_student=id_student, rating=rating_list, type=type_)
+        return await self._db.execute(query)
+
+
+
+
+
+
+
+
 
 
     # Примеры CRUD-методов student

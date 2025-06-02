@@ -1,37 +1,22 @@
-# internal/
-#
-#
-# http/server/router.py
-from datetime import datetime
-
-import uvicorn
 from fastapi import APIRouter
+
 from internal.http.server.contract import (
     Student, Teacher, Discipline
 )
 from internal.http.server.contract import (
-    GetAllStudentResponse,
+    GetAllStudentResponse, GetFeedbackResponse,
     GetTeachersAndDisciplinesRequest, GetTeachersAndDisciplinesResponse,
     AddTeacherRatingRequest,
     AddDisciplineRatingRequest,
     StatusResponse
 )
-from internal.http.storage.storage import Storage
 
-db = Storage()
-db.init_table()
-
-# internal/app/app.py
-from fastapi import FastAPI
-app = FastAPI(
-    title="Student Rating API",
-    description="API для управления рейтингами студентов",
-    version="1.0.0"
-)
-
+from internal.storage.storage import Storage
+from datetime import datetime
 router = APIRouter()
+db = Storage()
 
-@router.get("/get_all_student/", response_model=GetAllStudentResponse)
+@router.get("/get_all_student", response_model=GetAllStudentResponse)
 async def get_all_students():
     await db.connect()
     students = await db.get_all_students()
@@ -72,4 +57,9 @@ async def add_discipline_rating(data: AddDisciplineRatingRequest):
     await db.disconnect()
     return StatusResponse(status=True)
 
-app.include_router(router)
+@router.get("/get_feedback", response_model=GetFeedbackResponse)
+async def add_discipline_rating():
+    await db.connect()
+    await db.add_rating(date=datetime.now(), id_student=data.id_student, rating_list=data.rating, type_="discipline")
+    await db.disconnect()
+    return StatusResponse(status=True)

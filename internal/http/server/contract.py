@@ -1,6 +1,4 @@
-# internal/domain/models/student.py
 from pydantic import BaseModel
-from typing import List, Optional
 
 
 class Student(BaseModel):
@@ -29,20 +27,28 @@ class GetTeachersAndDisciplinesRequest(BaseModel):
 
 # Response /get_teachers_and_disciplines_by_id_student
 class GetTeachersAndDisciplinesResponse(BaseModel):
-    disciplines: List[Discipline]
-    teachers: List[Teacher]
+    disciplines: list[Discipline]
+    teachers: list[Teacher]
 
 
 # Request /add_teacher_rating
 class AddTeacherRatingRequest(BaseModel):
     id_student: int
-    rating: List[int]
+    rating: list[int]
 
 
 # Request /add_discipline_rating
 class AddDisciplineRatingRequest(BaseModel):
     id_student: int
-    rating: List[int]
+    rating: list[int]
+
+
+# Response /get_feedback
+class GetFeedbackResponse(BaseModel):
+    id_student: int
+    name: str
+    summary: str
+    keywords: list[str]
 
 
 # Response status
